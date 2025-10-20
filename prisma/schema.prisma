@@ -1,0 +1,305 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------
+// ENUMS
+// ------------------------------------------
+
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+
+// ------------------------------------------
+// MODELS
+// ------------------------------------------
+
+model User {
+  id        String   @id @default(uuid())
+  role      Role     @default(EMPLOYEE)
+  name      String
+  email     String   @unique
+  mobile    String?
+  password  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  certificatesIssued Certificate[] @relation("IssuedByUser")
+}
+
+model University {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  address   String?
+  createdAt DateTime @default(now())
+
+  colleges College[]
+  students Student[]
+}
+
+model College {
+  id           String      @id @default(uuid())
+  name         String
+  address      String?
+  collegeCode  String?
+  createdAt    DateTime    @default(now())
+  universityId String?
+  university   University? @relation(fields: [universityId], references: [id])
+
+  students Student[]
+
+  @@index([name])
+}
+
+model Student {
+  id                     String    @id @default(uuid())
+  fullName               String
+  fatherName             String
+  email                  String?
+  mobile                 String?
+  universityEnrollmentNo String?   @unique
+  collegeId              String?
+  universityId           String?
+  course                 String?
+  internshipFrom         DateTime?
+  internshipTo           DateTime?
+  meta                   Json?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  // Relations
+  college      College?      @relation(fields: [collegeId], references: [id])
+  university   University?   @relation(fields: [universityId], references: [id])
+  certificates Certificate[]
+
+  @@index([fullName])
+  @@index([fatherName])
+  @@index([universityEnrollmentNo])
+}
+
+model Certificate {
+  id               String    @id @default(uuid())
+  certNumber       String    @unique
+  studentId        String?
+  issuedById       String?
+  pdfS3Key         String?
+  pdfSHA256        String?
+  verificationHash String    @unique
+  qrData           String?
+  revoked          Boolean   @default(false)
+  revokedAt        DateTime?
+  issuedAt         DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+
+  // Relations
+  student  Student? @relation(fields: [studentId], references: [id])
+  issuedBy User?    @relation("IssuedByUser", fields: [issuedById], references: [id])
+
+  @@index([issuedAt])
+  @@map("certificates")
+}
+
+model Career {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  phone     String
+  message   String
+  resumeURL String
+  createdAt DateTime @default(now())
+}
+
+// ------------------------------------------------------------------------------------------------------
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+
+// // ------------------------------------------
+// // ENUMS
+// // ------------------------------------------
+
+// enum Role {
+//   ADMIN
+//   EMPLOYEE
+// }
+
+// enum RequestStatus {
+//   PENDING
+//   GENERATED
+//   REVOKED
+// }
+
+// // ------------------------------------------
+// // MODELS
+// // ------------------------------------------
+
+// model User {
+//   id        String   @id @default(uuid())
+//   role      Role     @default(EMPLOYEE)
+//   name      String
+//   email     String   @unique
+//   mobile    String?
+//   password  String
+//   isActive  Boolean  @default(true)
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+
+//   // Relations
+//   certificatesIssued Certificate[]        @relation("IssuedByUser")
+//   requestsSubmitted  CertificateRequest[] @relation("SubmittedByUser")
+//   AuditLog           AuditLog[]
+// }
+
+// model University {
+//   id        String    @id @default(uuid())
+//   name      String    @unique
+//   address   String?
+//   createdAt DateTime  @default(now())
+//   colleges  College[]
+// }
+
+// model College {
+//   id           String      @id @default(uuid())
+//   name         String
+//   address      String?
+//   collegeCode  String?
+//   createdAt    DateTime    @default(now())
+//   universityId String?
+//   university   University? @relation(fields: [universityId], references: [id])
+//   students     Student[]
+//   // requests     CertificateRequest[]
+
+//   @@index([name])
+// }
+
+// model Domain {
+//   id       Int                  @id @default(autoincrement())
+//   slug     String               @unique
+//   title    String
+//   requests CertificateRequest[]
+
+//   @@map("domains")
+// }
+
+// model Student {
+//   id                     String   @id @default(uuid())
+//   fullName               String
+//   fatherName             String?
+//   email                  String?
+//   mobile                 String?
+//   universityEnrollmentNo String?  @unique
+//   collegeId              String?
+//   universityId           String?
+//   meta                   Json?
+//   createdAt              DateTime @default(now())
+//   updatedAt              DateTime @updatedAt
+
+//   // Relations
+//   college      College?             @relation(fields: [collegeId], references: [id])
+//   requests     CertificateRequest[]
+//   certificates Certificate[]
+
+//   @@index([fullName])
+//   @@index([universityEnrollmentNo])
+// }
+
+// model CertificateRequest {
+//   id             String        @id @default(uuid())
+//   studentId      String?
+//   submittedById  String?
+//   collegeName    String
+//   universityName String
+//   course         String
+//   domainId       Int?
+//   internshipFrom DateTime
+//   internshipTo   DateTime
+//   purpose        String?
+//   status         RequestStatus @default(PENDING)
+//   note           String?
+//   createdAt      DateTime      @default(now())
+//   updatedAt      DateTime      @updatedAt
+
+//   // Relations
+//   student     Student?     @relation(fields: [studentId], references: [id])
+//   submittedBy User?        @relation("SubmittedByUser", fields: [submittedById], references: [id])
+//   domain      Domain?      @relation(fields: [domainId], references: [id])
+//   certificate Certificate?
+//   // College     College?     @relation(fields: [collegeId], references: [id])
+//   collegeId   String?
+
+//   @@index([status, createdAt])
+//   @@map("certificate_requests")
+// }
+
+// model Certificate {
+//   id               String    @id @default(uuid())
+//   certNumber       String    @unique
+//   certSeq          BigInt
+//   requestId        String?   @unique
+//   studentId        String?
+//   issuedById       String?
+//   pdfS3Key         String?
+//   pdfSHA256        String?
+//   verificationHash String
+//   qrData           String?
+//   revoked          Boolean   @default(false)
+//   revokedAt        DateTime?
+//   issuedAt         DateTime  @default(now())
+//   createdAt        DateTime  @default(now())
+
+//   // Relations
+//   request  CertificateRequest? @relation(fields: [requestId], references: [id])
+//   student  Student?            @relation(fields: [studentId], references: [id])
+//   issuedBy User?               @relation("IssuedByUser", fields: [issuedById], references: [id])
+
+//   @@index([issuedAt])
+//   @@map("certificates")
+// }
+
+// model AuditLog {
+//   id          String   @id @default(uuid())
+//   actorUserId String?
+//   action      String
+//   targetType  String?
+//   targetId    String?
+//   meta        Json?
+//   ipAddr      String?
+//   createdAt   DateTime @default(now())
+
+//   actorUser User? @relation(fields: [actorUserId], references: [id])
+// }
+
+// model Attachment {
+//   id         String   @id @default(uuid())
+//   ownerType  String?
+//   ownerId    String?
+//   name       String
+//   storageKey String
+//   mimeType   String?
+//   sizeBytes  Int?
+//   createdAt  DateTime @default(now())
+// }
+
+// model Career {
+//   id        String   @id @default(uuid())
+//   name      String
+//   email     String
+//   phone     String
+//   message   String
+//   resumeURL String
+//   createdAt DateTime @default(now())
+// }
