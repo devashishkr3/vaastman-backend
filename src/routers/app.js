@@ -1,11 +1,7 @@
 const express = require("express");
 const router = express.Router();
+const authRoute = require("./authRoute");
 
-router.get("/", (req, res) => {
-  return res.status(200).json({
-    success: "true",
-    message: "everything is going well",
-  });
-});
+router.use("/auth", authRoute);
 
 module.exports = router;

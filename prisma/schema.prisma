@@ -117,6 +117,12 @@ model Career {
   createdAt DateTime @default(now())
 }
 
+model blacklistedToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  createdAt DateTime @default(now())
+}
+
 // ------------------------------------------------------------------------------------------------------
 
 // generator client {

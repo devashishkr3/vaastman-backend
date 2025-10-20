@@ -4,8 +4,8 @@ const cors = require("cors");
 const morgan = require("morgan");
 const { default: rateLimit } = require("express-rate-limit");
 const AppError = require("./utils/error");
-const ErrorHandler = require("./middlewares/errorHandler");
 const routes = require("../src/routers/app");
+const globalErrorHandler = require("./middlewares/globalErrorHandler");
 // const logger = require('')
 
 // Load Environment Variable
@@ -73,7 +73,7 @@ app.use((req, res, next) => {
 });
 
 // Error Handler
-app.use(ErrorHandler);
+app.use(globalErrorHandler);
 
 // PORT
 const port = process.env.PORT || 8080;
