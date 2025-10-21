@@ -14,15 +14,7 @@ router.post(
   joiValidator(authValidator.loginUserSchema, "body"),
   authController.login
 );
-router.post(
-  "/refresh-token",
-  joiValidator(authValidator.refreshTokenSchema, "headers"),
-  authController.refreshToken
-);
-router.post(
-  "/logout",
-  //   joiValidator(authValidator.logoutSchema, "headers"),
-  authController.logout
-);
+router.post("/refresh-token", authController.refreshToken);
+router.post("/logout", authController.logout);
 
 module.exports = router;
