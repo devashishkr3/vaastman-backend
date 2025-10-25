@@ -70,3 +70,79 @@ exports.submitCareer = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * GLOBAL CERTIFICATE SEARCH
+ * Search by: student name, email, enrollment number, certNumber
+ */
+exports.globalCertificateSearch = async (req, res, next) => {
+  try {
+    const { query } = req.query; // ?query=xyz
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a search query",
+      });
+    }
+
+    // 🔹 Search in certificates and students
+    const certificates = await prisma.certificate.findMany({
+      where: {
+        OR: [
+          { certNumber: { contains: query, mode: "insensitive" } },
+          {
+            student: {
+              fullName: { contains: query, mode: "insensitive" },
+            },
+          },
+          {
+            student: {
+              email: { contains: query, mode: "insensitive" },
+            },
+          },
+          {
+            student: {
+              universityEnrollmentNo: { contains: query, mode: "insensitive" },
+            },
+          },
+        ],
+      },
+      include: {
+        student: true,
+        issuedBy: true,
+      },
+      orderBy: { createdAt: "desc" }, // latest first
+      take: 20, // max 20 results
+    });
+
+    if (!certificates || certificates.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No certificates found for this query",
+      });
+    }
+
+    // 🔹 Format result for frontend
+    const results = certificates.map((c) => ({
+      certNumber: c.certNumber,
+      studentName: c.student?.fullName,
+      email: c.student?.email,
+      enrollmentNo: c.student?.universityEnrollmentNo,
+      course: c.course,
+      internshipFrom: c.internshipFrom,
+      internshipTo: c.internshipTo,
+      issuedBy: c.issuedBy?.name || "Unknown",
+      certificateURL: c.certificateURL, // download link
+      revoked: c.revoked,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      count: results.length,
+      data: results,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
