@@ -70,7 +70,7 @@ model Student {
   fullName               String
   fatherName             String
   gender                 Gender
-  email                  String
+  email                  String   @unique
   mobile                 String?
   universityEnrollmentNo String?  @unique
   collegeId              String?
@@ -113,16 +113,6 @@ model Certificate {
 
   @@index([issuedAt])
   @@map("certificates")
-}
-
-model Career {
-  id        String   @id @default(uuid())
-  name      String
-  email     String
-  phone     String
-  message   String
-  resumeURL String
-  createdAt DateTime @default(now())
 }
 
 model blacklistedToken {
