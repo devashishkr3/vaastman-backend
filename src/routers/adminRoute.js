@@ -9,6 +9,7 @@ const joiValidator = require("../middlewares/joiValidator");
 const universityValidator = require("../validators/universityValidaton");
 const collegeValidator = require("../validators/collegeValidation");
 const employeeValidator = require("../validators/employeeValidation");
+const certificateValidator = require("../validators/certificateValidaton");
 const { protect, restrictTo } = require("../middlewares/authMIddleware");
 
 // router.use(protect, restrictTo("ADMIN"));
@@ -115,22 +116,32 @@ router.get(
 );
 
 // Certificates
-router.post("/certificates/create", certificateController.createCertificate);
+router.post(
+  "/certificates/create",
+  joiValidator(certificateValidator.createCertificateSchema, "body"),
+  certificateController.createCertificate
+);
 // router.get("/certificates", certificateController.getAllCertificates);
 router.put(
   "/certificates/:certNumber",
+  joiValidator(certificateValidator.updateCertificateSchema, "body"),
+  joiValidator(certificateValidator.certNumberParamSchema, "params"),
   certificateController.updateCertificate
 );
+// may be this line is problematic
 router.patch(
-  "/certificates/:certNumber/toggle-revoke",
+  "/certificates/:certNumber",
+  joiValidator(certificateValidator.certNumberParamSchema, "params"),
   certificateController.toggleRevokeCertificate
 );
 router.get(
   "/certificates/verify/:hash",
+  joiValidator(certificateValidator.verifyHashParamSchema, "params"),
   certificateController.verifyCertificate
 );
 router.delete(
   "/certificates/:certNumber",
+  joiValidator(certificateValidator.certNumberParamSchema, "params"),
   certificateController.deleteCertificate
 );
 
