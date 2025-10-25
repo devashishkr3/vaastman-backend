@@ -6,7 +6,6 @@ const { default: rateLimit } = require("express-rate-limit");
 const AppError = require("./utils/error");
 const routes = require("../src/routers/app");
 const globalErrorHandler = require("./middlewares/globalErrorHandler");
-// const logger = require('')
 
 // Load Environment Variable
 dotenv.config();
@@ -37,7 +36,7 @@ app.use(morgan("dev"));
 // CORS
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "*",
+    origin: process.env.FRONTEND_URL,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
