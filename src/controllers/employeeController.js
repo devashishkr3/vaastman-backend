@@ -26,8 +26,6 @@ exports.dashboard = async (req, res, next) => {
   }
 };
 
-const { prisma } = require("../utils/prisma");
-
 /**---------------------EMPLOYEE-DASHBOARD--------------------- */
 // exports.dashboard = async (req, res, next) => {
 //   try {

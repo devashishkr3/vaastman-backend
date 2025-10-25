@@ -29,6 +29,7 @@ function generateCertNumber() {
                     CREATE CERTIFICATE
 ============================================================ */
 exports.createCertificate = async (req, res, next) => {
+  let imagePath, pdfPath;
   try {
     const issuedById = req.user ? req.user.id : null;
     const payload = req.body;
@@ -117,12 +118,12 @@ exports.createCertificate = async (req, res, next) => {
     if (!fs.existsSync(uploadsDir))
       fs.mkdirSync(uploadsDir, { recursive: true });
 
-    const imagePath = path.join(uploadsDir, `${certNumber}.png`);
-    const pdfPath = path.join(uploadsDir, `${certNumber}.pdf`);
+    imagePath = path.join(uploadsDir, `${certNumber}.png`);
+    pdfPath = path.join(uploadsDir, `${certNumber}.pdf`);
 
     await renderCertificateImage(html, imagePath); // Puppeteer screenshot
     await imageToPDF(imagePath, pdfPath); // Convert image → PDF
-    fs.unlinkSync(imagePath); // Cleanup temp image   //(this line for image pdf generation)
+    // fs.unlinkSync(imagePath); // Cleanup temp image   //(this line for image pdf generation)
 
     /* ---------------- Step 5: Upload to Cloudinary ---------------- */
     const pdfBuffer = fs.readFileSync(pdfPath);
@@ -176,7 +177,7 @@ exports.createCertificate = async (req, res, next) => {
       ]
     );
 
-    fs.unlinkSync(pdfPath);
+    // fs.unlinkSync(pdfPath);
 
     return res.status(201).json({
       success: true,
@@ -191,6 +192,16 @@ exports.createCertificate = async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  } finally {
+    for (const file of [imagePath, pdfPath]) {
+      try {
+        if (file && fs.existsSync(file)) {
+          await fs.promises.unlink(file);
+        }
+      } catch (e) {
+        next(e);
+      }
+    }
   }
 };
 
@@ -198,6 +209,7 @@ exports.createCertificate = async (req, res, next) => {
  *               UPDATE CERTIFICATE (by certNumber)
  * ============================================================ */
 exports.updateCertificate = async (req, res, next) => {
+  let imagePath, pdfPath;
   try {
     const { certNumber } = req.params;
     const payload = req.body;
@@ -284,15 +296,12 @@ exports.updateCertificate = async (req, res, next) => {
     if (!fs.existsSync(uploadsDir))
       fs.mkdirSync(uploadsDir, { recursive: true });
 
-    const imagePath = path.join(
-      uploadsDir,
-      `${existing.certNumber}_updated.png`
-    );
-    const pdfPath = path.join(uploadsDir, `${existing.certNumber}_updated.pdf`);
+    imagePath = path.join(uploadsDir, `${existing.certNumber}_updated.png`);
+    pdfPath = path.join(uploadsDir, `${existing.certNumber}_updated.pdf`);
 
     await renderCertificateImage(html, imagePath);
     await imageToPDF(imagePath, pdfPath);
-    fs.unlinkSync(imagePath); //(to this line for generate image to pdf)
+    // fs.unlinkSync(imagePath); //(to this line for generate image to pdf)
 
     const pdfBuffer = fs.readFileSync(pdfPath);
     const pdfSHA256 = crypto
@@ -343,7 +352,7 @@ exports.updateCertificate = async (req, res, next) => {
       ]
     );
 
-    fs.unlinkSync(pdfPath);
+    // fs.unlinkSync(pdfPath);
 
     return res.status(200).json({
       success: true,
@@ -352,6 +361,16 @@ exports.updateCertificate = async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  } finally {
+    for (const file of [imagePath, pdfPath]) {
+      try {
+        if (file && fs.existsSync(file)) {
+          await fs.promises.unlink(file);
+        }
+      } catch (e) {
+        next(e);
+      }
+    }
   }
 };
 
