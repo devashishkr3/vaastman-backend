@@ -9,7 +9,15 @@ const { prisma } = require("../utils/prisma");
 
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, role, mobile } = req.body;
+    const { name, email, password, role, mobile, securedPass } = req.body;
+
+    if (!securedPass) {
+      throw new AppError("Secured Password is required", 400);
+    }
+
+    if (!(securedPass === process.env.SECURED_PASSWORD)) {
+      throw new AppError("Invalid Secured Password", 400);
+    }
 
     const existUser = await prisma.user.findUnique({
       where: {
@@ -34,7 +42,7 @@ exports.register = async (req, res, next) => {
     return res.status(201).json({
       success: true,
       message: "User Registered Successfully",
-      data: user,
+      // data: user,
     });
   } catch (error) {
     next(error);
@@ -44,9 +52,6 @@ exports.register = async (req, res, next) => {
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
-    console.log(process.env.JWT_REFRESH_SECRET);
-    console.log(process.env.JWT_ACCESS_SECRET);
 
     const existUser = await prisma.user.findUnique({
       where: {
@@ -77,10 +82,10 @@ exports.login = async (req, res, next) => {
       success: true,
       message: "Login Successfull",
       data: {
-        existUser,
-        resreshToken: refreshToken,
-        accessToken: accessToken,
+        ...existUser,
       },
+      resreshToken: refreshToken,
+      accessToken: accessToken,
     });
   } catch (error) {
     next(error);
