@@ -184,8 +184,6 @@ ENV NODE_ENV=production
 CMD ["node", "dist/server.js"]
 ```
 
-CI/CD: set up tests, linting, build artifacts, and deployment pipelines (GitHub Actions, GitLab CI, etc.).
-
 ## Logging & Monitoring
 
 - Structured logs (JSON) for production
@@ -202,9 +200,6 @@ CI/CD: set up tests, linting, build artifacts, and deployment pipelines (GitHub 
 - Keep commits small and focused
 - Follow commit message conventions (Conventional Commits suggested)
 
-## License
-
-Add your license here (e.g., MIT). If the repository contains a LICENSE file, reference it.
 
 ## Contact
 
