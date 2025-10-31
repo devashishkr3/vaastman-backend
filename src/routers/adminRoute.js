@@ -12,7 +12,7 @@ const employeeValidator = require("../validators/employeeValidation");
 const certificateValidator = require("../validators/certificateValidaton");
 const { protect, restrictTo } = require("../middlewares/authMIddleware");
 
-// router.use(protect, restrictTo("ADMIN"));
+router.use(protect, restrictTo("ADMIN"));
 
 // Dashboard
 router.get("/dashboard", adminController.dashboard);

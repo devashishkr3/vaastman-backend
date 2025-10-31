@@ -70,9 +70,9 @@ model Student {
   fullName               String
   fatherName             String
   gender                 Gender
-  email                  String   @unique
+  email                  String?
   mobile                 String?
-  universityEnrollmentNo String?  @unique
+  universityEnrollmentNo String   @unique
   collegeId              String?
   universityId           String?
   meta                   Json?

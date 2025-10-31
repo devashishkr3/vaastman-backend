@@ -28,6 +28,183 @@ function generateCertNumber() {
 /* ============================================================
                     CREATE CERTIFICATE
 ============================================================ */
+// exports.createCertificate = async (req, res, next) => {
+//   let imagePath, pdfPath;
+//   try {
+//     const issuedById = req.user ? req.user.id : null;
+//     const payload = req.body;
+
+//     const required = [
+//       "fullName",
+//       "fatherName",
+//       "gender",
+//       // "email",
+//       "universityEnrollmentNo",
+//       "fieldName",
+//     ];
+
+//     for (const f of required) {
+//       if (!payload[f]) {
+//         return res
+//           .status(400)
+//           .json({ success: false, message: `${f} is required` });
+//       }
+//     }
+
+//     /* ---------------- Step 1: Find or Create Student ---------------- */
+//     let student = await prisma.student.findUnique({
+//       where: { email: payload.email },
+//     });
+
+//     if (!student) {
+//       student = await prisma.student.create({
+//         data: {
+//           fullName: payload.fullName,
+//           fatherName: payload.fatherName,
+//           gender: payload.gender,
+//           email: payload.email,
+//           mobile: payload.mobile,
+//           universityEnrollmentNo: payload.universityEnrollmentNo,
+//           collegeId: payload.collegeId || null,
+//           universityId: payload.universityId || null,
+//         },
+//       });
+//     }
+
+//     /* ---------------- Step 2: Certificate Meta ---------------- */
+//     const certNumber = generateCertNumber();
+//     const verificationHash = crypto.randomBytes(16).toString("hex");
+//     const verificationUrl = `${
+//       process.env.PUBLIC_BASE_URL || "https://vaastman.com"
+//     }/verify/${verificationHash}`;
+//     const qrDataUrl = await generateQR(verificationUrl);
+
+//     /* ---------------- Step 3: Build Certificate HTML ---------------- */
+//     const html = buildCertificateHTML({
+//       LOGO_URL:
+//         "https://res.cloudinary.com/ddki7crpd/image/upload/v1761202455/WhatsApp_Image_2025-10-22_at_12.58.51_fe1f8f33_vzlz9c.jpg",
+//       STUDENT_NAME: student.fullName,
+//       UNIVERSITY_NAME: payload.universityName || "",
+//       FIELD_NAME: payload.fieldName || "",
+//       FROM_DATE: payload.internshipFrom
+//         ? new Date(payload.internshipFrom).toLocaleDateString()
+//         : "",
+//       TO_DATE: payload.internshipTo
+//         ? new Date(payload.internshipTo).toLocaleDateString()
+//         : "",
+//       COMPANY_NAME: "Vaastman Solutions Pvt. Ltd.",
+//       GAINED_SKILLS: payload.skills || "",
+//       AUTHORIZED_PERSON: "Aditya Suman",
+//       QR_CODE: qrDataUrl,
+//       CERTIFICATE_NO: certNumber,
+//       ISSUE_DATE: payload.issueDate
+//         ? new Date(payload.issueDate).toLocaleDateString()
+//         : new Date().toLocaleDateString(),
+//     });
+
+//     // /* ---------------- Step 4: Generate PDF ---------------- */
+//     // const uploadsDir = path.join(process.cwd(), "uploads");
+//     // if (!fs.existsSync(uploadsDir))
+//     //   fs.mkdirSync(uploadsDir, { recursive: true });
+
+//     // const pdfPath = path.join(
+//     //   uploadsDir,
+//     //   `${certNumber.replace(/[\/\\]/g, "_")}.pdf`
+//     // );
+//     // await renderCertificatePDF(html, pdfPath);
+
+//     /* ---------------- Step 4: Render Image & Convert to PDF ---------------- */ //(from this line to)
+//     const uploadsDir = path.join(process.cwd(), "uploads");
+//     if (!fs.existsSync(uploadsDir))
+//       fs.mkdirSync(uploadsDir, { recursive: true });
+
+//     imagePath = path.join(uploadsDir, `${certNumber}.png`);
+//     pdfPath = path.join(uploadsDir, `${certNumber}.pdf`);
+
+//     await renderCertificateImage(html, imagePath); // Puppeteer screenshot
+//     await imageToPDF(imagePath, pdfPath); // Convert image → PDF
+//     // fs.unlinkSync(imagePath); // Cleanup temp image   //(this line for image pdf generation)
+
+//     /* ---------------- Step 5: Upload to Cloudinary ---------------- */
+//     const pdfBuffer = fs.readFileSync(pdfPath);
+//     const pdfSHA256 = crypto
+//       .createHash("sha256")
+//       .update(pdfBuffer)
+//       .digest("hex");
+//     const { secure_url, public_id } = await uploadToCloudinary(
+//       pdfPath,
+//       "certificates"
+//     );
+
+//     const certificate = await prisma.certificate.create({
+//       data: {
+//         certNumber,
+//         studentId: student.id,
+//         issuedById,
+//         public_id,
+//         certificateURL: secure_url,
+//         pdfSHA256,
+//         verificationHash,
+//         qrData: qrDataUrl,
+//         course: payload.fieldName || null,
+//         internshipFrom: safeDate(payload.internshipFrom),
+//         internshipTo: safeDate(payload.internshipTo),
+//         issuedAt: safeDate(payload.issueDate),
+//       },
+//     });
+
+//     // ✅ Send Certificate Email
+//     await sendEmail(
+//       student.email,
+//       `🎓 Your Internship Certificate - ${certNumber}`,
+//       `
+//   <div style="font-family: Arial, sans-serif; line-height:1.6;">
+//     <h2>Congratulations ${student.fullName},</h2>
+//     <p>Your internship certificate has been successfully issued by <b>Vaastman Solutions Pvt. Ltd.</b></p>
+//     <p><b>Certificate No:</b> ${certNumber}</p>
+//     <p>You can verify your certificate anytime using this link:</p>
+//     <a href="${verificationUrl}" target="_blank">${verificationUrl}</a>
+//     <br/><br/>
+//     <p>Best Regards,<br/><b>Team Vaastman Solutions</b></p>
+//   </div>
+//   `,
+//       [
+//         {
+//           filename: `${certNumber}.pdf`,
+//           path: pdfPath,
+//           contentType: "application/pdf",
+//         },
+//       ]
+//     );
+
+//     // fs.unlinkSync(pdfPath);
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Certificate generated successfully",
+//       data: {
+//         certificateId: certificate.id,
+//         certNumber,
+//         studentId: student.id,
+//         downloadUrl: secure_url,
+//         verificationUrl,
+//       },
+//     });
+//   } catch (err) {
+//     next(err);
+//   } finally {
+//     for (const file of [imagePath, pdfPath]) {
+//       try {
+//         if (file && fs.existsSync(file)) {
+//           await fs.promises.unlink(file);
+//         }
+//       } catch (e) {
+//         next(e);
+//       }
+//     }
+//   }
+// };
+
 exports.createCertificate = async (req, res, next) => {
   let imagePath, pdfPath;
   try {
@@ -38,7 +215,6 @@ exports.createCertificate = async (req, res, next) => {
       "fullName",
       "fatherName",
       "gender",
-      "email",
       "universityEnrollmentNo",
       "fieldName",
     ];
@@ -53,7 +229,7 @@ exports.createCertificate = async (req, res, next) => {
 
     /* ---------------- Step 1: Find or Create Student ---------------- */
     let student = await prisma.student.findUnique({
-      where: { email: payload.email },
+      where: { universityEnrollmentNo: payload.universityEnrollmentNo },
     });
 
     if (!student) {
@@ -62,11 +238,25 @@ exports.createCertificate = async (req, res, next) => {
           fullName: payload.fullName,
           fatherName: payload.fatherName,
           gender: payload.gender,
-          email: payload.email,
-          mobile: payload.mobile,
+          email: payload.email || null,
+          mobile: payload.mobile || null,
           universityEnrollmentNo: payload.universityEnrollmentNo,
           collegeId: payload.collegeId || null,
           universityId: payload.universityId || null,
+        },
+      });
+    } else {
+      // Agar student already hai, aur naye data aaye hain to update kar le
+      await prisma.student.update({
+        where: { id: student.id },
+        data: {
+          fullName: payload.fullName || student.fullName,
+          fatherName: payload.fatherName || student.fatherName,
+          gender: payload.gender || student.gender,
+          email: payload.email || student.email,
+          mobile: payload.mobile || student.mobile,
+          collegeId: payload.collegeId || student.collegeId,
+          universityId: payload.universityId || student.universityId,
         },
       });
     }
@@ -102,18 +292,7 @@ exports.createCertificate = async (req, res, next) => {
         : new Date().toLocaleDateString(),
     });
 
-    // /* ---------------- Step 4: Generate PDF ---------------- */
-    // const uploadsDir = path.join(process.cwd(), "uploads");
-    // if (!fs.existsSync(uploadsDir))
-    //   fs.mkdirSync(uploadsDir, { recursive: true });
-
-    // const pdfPath = path.join(
-    //   uploadsDir,
-    //   `${certNumber.replace(/[\/\\]/g, "_")}.pdf`
-    // );
-    // await renderCertificatePDF(html, pdfPath);
-
-    /* ---------------- Step 4: Render Image & Convert to PDF ---------------- */ //(from this line to)
+    /* ---------------- Step 4: Render Image → PDF ---------------- */
     const uploadsDir = path.join(process.cwd(), "uploads");
     if (!fs.existsSync(uploadsDir))
       fs.mkdirSync(uploadsDir, { recursive: true });
@@ -121,9 +300,8 @@ exports.createCertificate = async (req, res, next) => {
     imagePath = path.join(uploadsDir, `${certNumber}.png`);
     pdfPath = path.join(uploadsDir, `${certNumber}.pdf`);
 
-    await renderCertificateImage(html, imagePath); // Puppeteer screenshot
-    await imageToPDF(imagePath, pdfPath); // Convert image → PDF
-    // fs.unlinkSync(imagePath); // Cleanup temp image   //(this line for image pdf generation)
+    await renderCertificateImage(html, imagePath);
+    await imageToPDF(imagePath, pdfPath);
 
     /* ---------------- Step 5: Upload to Cloudinary ---------------- */
     const pdfBuffer = fs.readFileSync(pdfPath);
@@ -153,37 +331,34 @@ exports.createCertificate = async (req, res, next) => {
       },
     });
 
-    // ✅ Send Certificate Email
-    await sendEmail(
-      student.email,
-      `🎓 Your Internship Certificate - ${certNumber}`,
-      `
-  <div style="font-family: Arial, sans-serif; line-height:1.6;">
-    <h2>Congratulations ${student.fullName},</h2>
-    <p>Your internship certificate has been successfully issued by <b>Vaastman Solutions Pvt. Ltd.</b></p>
-    <p><b>Certificate No:</b> ${certNumber}</p>
-    <p>You can verify your certificate anytime using this link:</p>
-    <a href="${verificationUrl}" target="_blank">${verificationUrl}</a>
-    <br/><br/>
-    <p>Best Regards,<br/><b>Team Vaastman Solutions</b></p>
-  </div>
-  `,
-      [
-        {
-          filename: `${certNumber}.pdf`,
-          path: pdfPath,
-          contentType: "application/pdf",
-        },
-      ]
-    );
-
-    // fs.unlinkSync(pdfPath);
+    /* ---------------- Step 6: Send Email (if email available) ---------------- */
+    if (student.email) {
+      await sendEmail(
+        student.email,
+        `🎓 Your Internship Certificate - ${certNumber}`,
+        `
+        <div style="font-family: Arial, sans-serif; line-height:1.6;">
+          <h2>Congratulations ${student.fullName},</h2>
+          <p>Your internship certificate has been issued by <b>Vaastman Solutions Pvt. Ltd.</b></p>
+          <p><b>Certificate No:</b> ${certNumber}</p>
+          <p>You can verify it using this link:</p>
+          <a href="${verificationUrl}" target="_blank">${verificationUrl}</a>
+        </div>
+        `,
+        [
+          {
+            filename: `${certNumber}.pdf`,
+            path: pdfPath,
+            contentType: "application/pdf",
+          },
+        ]
+      );
+    }
 
     return res.status(201).json({
       success: true,
       message: "Certificate generated successfully",
       data: {
-        certificateId: certificate.id,
         certNumber,
         studentId: student.id,
         downloadUrl: secure_url,
@@ -195,12 +370,8 @@ exports.createCertificate = async (req, res, next) => {
   } finally {
     for (const file of [imagePath, pdfPath]) {
       try {
-        if (file && fs.existsSync(file)) {
-          await fs.promises.unlink(file);
-        }
-      } catch (e) {
-        next(e);
-      }
+        if (file && fs.existsSync(file)) await fs.promises.unlink(file);
+      } catch {}
     }
   }
 };
@@ -214,51 +385,55 @@ exports.updateCertificate = async (req, res, next) => {
     const { certNumber } = req.params;
     const payload = req.body;
 
-    // 🔹 Fetch certificate and related student
+    // Step 1: Fetch certificate and related student
     const existing = await prisma.certificate.findUnique({
       where: { certNumber },
       include: { student: true },
     });
 
     if (!existing) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Certificate not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Certificate not found",
+      });
     }
 
     const student = existing.student;
 
-    // 🔹 Step 1: Update student info if any field is provided
+    /* ---------------- Step 2: Update Student ---------------- */
     const studentUpdates = {};
     const possibleStudentFields = [
       "fullName",
       "fatherName",
       "gender",
-      "email",
-      "mobile",
+      // "email",
+      // "mobile",
       "universityEnrollmentNo",
-      "collegeId",
-      "universityId",
+      // "collegeId",
+      // "universityId",
     ];
 
     for (const field of possibleStudentFields) {
-      if (payload[field]) studentUpdates[field] = payload[field];
+      if (payload[field] && payload[field] !== student[field]) {
+        studentUpdates[field] = payload[field];
+      }
     }
 
     let updatedStudent = student;
     if (Object.keys(studentUpdates).length > 0) {
+      // Update student by enrollment number
       updatedStudent = await prisma.student.update({
-        where: { id: student.id },
+        where: { universityEnrollmentNo: student.universityEnrollmentNo },
         data: studentUpdates,
       });
     }
 
-    // 🔹 Step 2: Delete old file from Cloudinary
+    /* ---------------- Step 3: Delete old file from Cloudinary ---------------- */
     if (existing.public_id) {
       await deleteFromCloudinary(existing.public_id);
     }
 
-    // 🔹 Step 3: Build updated certificate HTML
+    /* ---------------- Step 4: Build updated certificate HTML ---------------- */
     const html = buildCertificateHTML({
       LOGO_URL:
         "https://res.cloudinary.com/ddki7crpd/image/upload/v1761202455/WhatsApp_Image_2025-10-22_at_12.58.51_fe1f8f33_vzlz9c.jpg",
@@ -283,15 +458,7 @@ exports.updateCertificate = async (req, res, next) => {
       ISSUE_DATE: new Date().toLocaleDateString(),
     });
 
-    // // 🔹 Step 4: Create new PDF
-    // const uploadsDir = path.join(process.cwd(), "uploads");
-    // if (!fs.existsSync(uploadsDir))
-    //   fs.mkdirSync(uploadsDir, { recursive: true });
-
-    // const pdfPath = path.join(uploadsDir, `${existing.certNumber}_updated.pdf`);
-    // await renderCertificatePDF(html, pdfPath);
-
-    // Step 4: Render Image → PDF  (from this line)
+    /* ---------------- Step 5: Generate New Image → PDF ---------------- */
     const uploadsDir = path.join(process.cwd(), "uploads");
     if (!fs.existsSync(uploadsDir))
       fs.mkdirSync(uploadsDir, { recursive: true });
@@ -301,21 +468,20 @@ exports.updateCertificate = async (req, res, next) => {
 
     await renderCertificateImage(html, imagePath);
     await imageToPDF(imagePath, pdfPath);
-    // fs.unlinkSync(imagePath); //(to this line for generate image to pdf)
 
+    /* ---------------- Step 6: Upload new PDF to Cloudinary ---------------- */
     const pdfBuffer = fs.readFileSync(pdfPath);
     const pdfSHA256 = crypto
       .createHash("sha256")
       .update(pdfBuffer)
       .digest("hex");
 
-    // 🔹 Step 5: Upload new PDF to Cloudinary
     const { secure_url, public_id } = await uploadToCloudinary(
       pdfPath,
       "certificates"
     );
 
-    // 🔹 Step 6: Update certificate record
+    /* ---------------- Step 7: Update certificate record ---------------- */
     const updatedCertificate = await prisma.certificate.update({
       where: { certNumber },
       data: {
@@ -330,49 +496,217 @@ exports.updateCertificate = async (req, res, next) => {
       },
     });
 
-    // 🔹 Step 7: Send updated email
-    await sendEmail(
-      updatedStudent.email,
-      `📄 Updated Certificate - ${existing.certNumber}`,
-      `
-  <div style="font-family: Arial, sans-serif; line-height:1.6;">
-    <h2>Hello ${updatedStudent.fullName},</h2>
-    <p>Your certificate <b>${existing.certNumber}</b> has been re-issued after correction.</p>
-    <p>Please find the updated version attached below.</p>
-    <br/>
-    <p>Best Regards,<br/><b>Team Vaastman Solutions Pvt. Ltd.</b></p>
-  </div>
-  `,
-      [
-        {
-          filename: `${existing.certNumber}_updated.pdf`,
-          path: pdfPath,
-          contentType: "application/pdf",
-        },
-      ]
-    );
+    /* ---------------- Step 8: Send Updated Certificate Email ---------------- */
+    if (updatedStudent.email) {
+      await sendEmail(
+        updatedStudent.email,
+        `📄 Updated Certificate - ${existing.certNumber}`,
+        `
+        <div style="font-family: Arial, sans-serif; line-height:1.6;">
+          <h2>Hello ${updatedStudent.fullName},</h2>
+          <p>Your certificate <b>${existing.certNumber}</b> has been re-issued with updates or corrections.</p>
+          <p>Please find your updated certificate attached below.</p>
+          <br/>
+          <p>Best Regards,<br/><b>Team Vaastman Solutions Pvt. Ltd.</b></p>
+        </div>
+        `,
+        [
+          {
+            filename: `${existing.certNumber}_updated.pdf`,
+            path: pdfPath,
+            contentType: "application/pdf",
+          },
+        ]
+      );
+    }
 
-    // fs.unlinkSync(pdfPath);
-
+    /* ---------------- Step 9: Final Response ---------------- */
     return res.status(200).json({
       success: true,
       message: "Certificate and student record updated successfully",
-      data: { updatedCertificate, updatedStudent },
+      data: {
+        updatedCertificate,
+        updatedStudent,
+      },
     });
   } catch (err) {
     next(err);
   } finally {
     for (const file of [imagePath, pdfPath]) {
       try {
-        if (file && fs.existsSync(file)) {
-          await fs.promises.unlink(file);
-        }
+        if (file && fs.existsSync(file)) await fs.promises.unlink(file);
       } catch (e) {
-        next(e);
+        console.error("⚠️ File cleanup error:", e);
       }
     }
   }
 };
+
+// exports.updateCertificate = async (req, res, next) => {
+//   let imagePath, pdfPath;
+//   try {
+//     const { certNumber } = req.params;
+//     const payload = req.body;
+
+//     // 🔹 Fetch certificate and related student
+//     const existing = await prisma.certificate.findUnique({
+//       where: { certNumber },
+//       include: { student: true },
+//     });
+
+//     if (!existing) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "Certificate not found" });
+//     }
+
+//     const student = existing.student;
+
+//     // 🔹 Step 1: Update student info if any field is provided
+//     const studentUpdates = {};
+//     const possibleStudentFields = [
+//       "fullName",
+//       "fatherName",
+//       "gender",
+//       "email",
+//       "mobile",
+//       "universityEnrollmentNo",
+//       "collegeId",
+//       "universityId",
+//     ];
+
+//     for (const field of possibleStudentFields) {
+//       if (payload[field]) studentUpdates[field] = payload[field];
+//     }
+
+//     let updatedStudent = student;
+//     if (Object.keys(studentUpdates).length > 0) {
+//       updatedStudent = await prisma.student.update({
+//         where: { id: student.id },
+//         data: studentUpdates,
+//       });
+//     }
+
+//     // 🔹 Step 2: Delete old file from Cloudinary
+//     if (existing.public_id) {
+//       await deleteFromCloudinary(existing.public_id);
+//     }
+
+//     // 🔹 Step 3: Build updated certificate HTML
+//     const html = buildCertificateHTML({
+//       LOGO_URL:
+//         "https://res.cloudinary.com/ddki7crpd/image/upload/v1761202455/WhatsApp_Image_2025-10-22_at_12.58.51_fe1f8f33_vzlz9c.jpg",
+//       STUDENT_NAME: updatedStudent.fullName,
+//       UNIVERSITY_NAME: payload.universityName || "",
+//       FIELD_NAME: payload.fieldName || existing.course,
+//       FROM_DATE: payload.internshipFrom
+//         ? new Date(payload.internshipFrom).toLocaleDateString()
+//         : existing.internshipFrom
+//         ? new Date(existing.internshipFrom).toLocaleDateString()
+//         : "",
+//       TO_DATE: payload.internshipTo
+//         ? new Date(payload.internshipTo).toLocaleDateString()
+//         : existing.internshipTo
+//         ? new Date(existing.internshipTo).toLocaleDateString()
+//         : "",
+//       COMPANY_NAME: "Vaastman Solutions Pvt. Ltd.",
+//       GAINED_SKILLS: payload.skills || "",
+//       AUTHORIZED_PERSON: "Aditya Suman",
+//       QR_CODE: existing.qrData,
+//       CERTIFICATE_NO: existing.certNumber,
+//       ISSUE_DATE: new Date().toLocaleDateString(),
+//     });
+
+//     // // 🔹 Step 4: Create new PDF
+//     // const uploadsDir = path.join(process.cwd(), "uploads");
+//     // if (!fs.existsSync(uploadsDir))
+//     //   fs.mkdirSync(uploadsDir, { recursive: true });
+
+//     // const pdfPath = path.join(uploadsDir, `${existing.certNumber}_updated.pdf`);
+//     // await renderCertificatePDF(html, pdfPath);
+
+//     // Step 4: Render Image → PDF  (from this line)
+//     const uploadsDir = path.join(process.cwd(), "uploads");
+//     if (!fs.existsSync(uploadsDir))
+//       fs.mkdirSync(uploadsDir, { recursive: true });
+
+//     imagePath = path.join(uploadsDir, `${existing.certNumber}_updated.png`);
+//     pdfPath = path.join(uploadsDir, `${existing.certNumber}_updated.pdf`);
+
+//     await renderCertificateImage(html, imagePath);
+//     await imageToPDF(imagePath, pdfPath);
+//     // fs.unlinkSync(imagePath); //(to this line for generate image to pdf)
+
+//     const pdfBuffer = fs.readFileSync(pdfPath);
+//     const pdfSHA256 = crypto
+//       .createHash("sha256")
+//       .update(pdfBuffer)
+//       .digest("hex");
+
+//     // 🔹 Step 5: Upload new PDF to Cloudinary
+//     const { secure_url, public_id } = await uploadToCloudinary(
+//       pdfPath,
+//       "certificates"
+//     );
+
+//     // 🔹 Step 6: Update certificate record
+//     const updatedCertificate = await prisma.certificate.update({
+//       where: { certNumber },
+//       data: {
+//         public_id,
+//         certificateURL: secure_url,
+//         pdfSHA256,
+//         course: payload.fieldName || existing.course,
+//         internshipFrom:
+//           safeDate(payload.internshipFrom) || existing.internshipFrom,
+//         internshipTo: safeDate(payload.internshipTo) || existing.internshipTo,
+//         issuedAt: new Date(),
+//       },
+//     });
+
+//     // 🔹 Step 7: Send updated email
+//     await sendEmail(
+//       updatedStudent.email,
+//       `📄 Updated Certificate - ${existing.certNumber}`,
+//       `
+//   <div style="font-family: Arial, sans-serif; line-height:1.6;">
+//     <h2>Hello ${updatedStudent.fullName},</h2>
+//     <p>Your certificate <b>${existing.certNumber}</b> has been re-issued after correction.</p>
+//     <p>Please find the updated version attached below.</p>
+//     <br/>
+//     <p>Best Regards,<br/><b>Team Vaastman Solutions Pvt. Ltd.</b></p>
+//   </div>
+//   `,
+//       [
+//         {
+//           filename: `${existing.certNumber}_updated.pdf`,
+//           path: pdfPath,
+//           contentType: "application/pdf",
+//         },
+//       ]
+//     );
+
+//     // fs.unlinkSync(pdfPath);
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Certificate and student record updated successfully",
+//       data: { updatedCertificate, updatedStudent },
+//     });
+//   } catch (err) {
+//     next(err);
+//   } finally {
+//     for (const file of [imagePath, pdfPath]) {
+//       try {
+//         if (file && fs.existsSync(file)) {
+//           await fs.promises.unlink(file);
+//         }
+//       } catch (e) {
+//         next(e);
+//       }
+//     }
+//   }
+// };
 
 /** ============================================================
  *              TOGGLE REVOKE STATUS (by certNumber)

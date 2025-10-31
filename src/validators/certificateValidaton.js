@@ -17,9 +17,8 @@ exports.createCertificateSchema = Joi.object({
     "any.required": "Gender is required",
   }),
 
-  email: Joi.string().email().required().messages({
+  email: Joi.string().email().optional().messages({
     "string.email": "A valid email is required",
-    "any.required": "Email is required",
   }),
 
   mobile: Joi.string()
