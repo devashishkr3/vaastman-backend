@@ -742,7 +742,7 @@ exports.toggleRevokeCertificate = async (req, res, next) => {
       where: { id: certificate.studentId },
     });
 
-    if (student) {
+    if (student && student.email) {
       if (!isCurrentlyRevoked) {
         // 🟥 Certificate Revoked
         await sendEmail(
