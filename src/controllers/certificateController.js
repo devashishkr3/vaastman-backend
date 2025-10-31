@@ -784,7 +784,6 @@ exports.toggleRevokeCertificate = async (req, res, next) => {
       data: updated,
     });
   } catch (err) {
-    console.error(err);
     next(err);
   }
 };
